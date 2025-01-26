@@ -32,12 +32,6 @@ diffdmc = DMC(dtype=torch.float32)
 
 verts, faces, tris = diffdmc(sdf, isovalue=0)
 mesh = trimesh.Trimesh(vertices=verts.detach().cpu().numpy(), faces=tris.cpu().numpy(), process=False)
-#mesh = trimesh.Trimesh(vertices=verts.detach().cpu().numpy(), faces=faces.cpu().numpy(), process=False)
-mesh.export("out/diso_origin.obj")
-
-# verts, faces = diffmc(sdf, None, isovalue=0)
-# mesh = trimesh.Trimesh(vertices=verts.detach().cpu().numpy(), faces=faces.cpu().numpy(), process=False)
-# mesh.export("out/diso_mc.obj")
-
+mesh.export("out/out.obj")
 
 print("forward results saved to out/")

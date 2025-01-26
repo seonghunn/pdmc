@@ -586,7 +586,7 @@ namespace cudualmc
       CHECK_CUDA(cudaMalloc((void **)&mc_vert_type, allocated_quad_count * sizeof(uint8_t)));
       CHECK_CUDA(cudaMalloc((void **)&quads, allocated_quad_count * sizeof(Quad<IndexType>)));
       // Quad division
-      CHECK_CUDA(cudaMalloc((void **)&mc_vert_to_edge, allocated_quad_count * sizeof(Edge<Vertex<Scalar>>)));          
+      CHECK_CUDA(cudaMalloc((void **)&mc_vert_to_edge, allocated_quad_count * sizeof(Edge<Vertex<Scalar>>)));
       CHECK_CUDA(cudaMalloc((void **)&first_tris_create, allocated_quad_count * sizeof(IndexType)));
       CHECK_CUDA(cudaMalloc((void **)&first_verts_create, allocated_quad_count * sizeof(IndexType)));
     }
@@ -694,18 +694,16 @@ namespace cudualmc
     dmc.used_to_first_mc_vert[used_index] = num;
   }
 
-
   template <typename Scalar>
   __device__ Scalar sigmoidAdjust(Scalar t)
   {
-      constexpr Scalar BETA = Scalar(5.0); // experimental settings
-      Scalar centered = t - Scalar(0.5);
-      Scalar out = Scalar(1.0) / 
-                  (Scalar(1.0) + exp(-BETA * centered));
+    constexpr Scalar BETA = Scalar(5.0); // experimental settings
+    Scalar centered = t - Scalar(0.5);
+    Scalar out = Scalar(1.0) /
+                 (Scalar(1.0) + exp(-BETA * centered));
 
-      return out;
+    return out;
   }
-
 
   template <typename Scalar, typename IndexType>
   inline __device__ Vertex<Scalar> computeMcVert(CUDualMC<Scalar, IndexType> &dmc,
@@ -722,7 +720,6 @@ namespace cudualmc
 
     Scalar t = (d1 != d0) ? clamp((iso - d0) / (d1 - d0), Scalar(0.0), Scalar(1.0)) : Scalar(0.5);
 
-
     t = sigmoidAdjust(t);
 
     Vertex<Scalar> p0 = {Scalar(x), Scalar(y), Scalar(z)};
@@ -730,7 +727,6 @@ namespace cudualmc
 
     return p0 + (p1 - p0) * t;
   }
-
 
   template <typename Scalar, typename IndexType>
   __global__ void index_cell_mc_verts_kernel(CUDualMC<Scalar, IndexType> dmc,
@@ -744,9 +740,8 @@ namespace cudualmc
     IndexType x = dmc.gX(cell_index);
     IndexType y = dmc.gY(cell_index);
     IndexType z = dmc.gZ(cell_index);
-    //printf("idxcell idx %d : %d %d %d\n", used_index, x,y,z);
 
-    Vertex<Scalar> v0 = {Scalar(x),Scalar(y),Scalar(z)};
+    Vertex<Scalar> v0 = {Scalar(x), Scalar(y), Scalar(z)};
     Vertex<Scalar> v[3];
     v[0] = {Scalar(x + 1), Scalar(y), Scalar(z)};
     v[1] = {Scalar(x), Scalar(y + 1), Scalar(z)};
@@ -765,7 +760,6 @@ namespace cudualmc
     for (int dim = 0; dim < 3; dim++)
     {
       Scalar d = ds[dim];
-      // dmc.used_cell_mc_vert[3 * used_index + dim] = 0;
 
       bool entering = d0 < iso && d >= iso;
       bool exiting = d < iso && d0 >= iso;
@@ -776,19 +770,16 @@ namespace cudualmc
         dmc.mc_vert_type[id] = (exiting ? 3 : 0) + dim;
         Edge<Vertex<Scalar>> e;
         // Envelope
-        if(entering){
-          //printf("entering idx flt %d : %f %f %f\n", id, v0.x, v0.y ,v0.z);
+        if (entering)
+        {
           e = {v[dim], v0};
         }
-        else if(exiting){
+        else if (exiting)
+        {
           e = {v0, v[dim]};
-          //printf("existing idx flt %d : %f %f %f\n", id, v0.x, v0.y ,v0.z);
         }
 
         dmc.mc_vert_to_edge[id] = e;
-
-        // dmc.used_cell_mc_vert[3 * used_index + dim] = id;
-        // dmc.mc_verts[id] = computeMcVert(dmc, data, x, y, z, dim, iso);
       }
     }
   }
@@ -862,48 +853,6 @@ namespace cudualmc
     dmc.used_to_first_mc_patch[used_index] = num;
   }
 
-  // TODO: combine count for speedup
-  // template <typename Scalar, typename IndexType>
-  // __global__ void
-  // count_cell_mc_verts_and_patches_kernel(CUDualMC<Scalar, IndexType> dmc,
-  //                                        Scalar const *__restrict__ data,
-  //                                        Scalar iso, int n_used) {
-
-  //   int used_index = blockIdx.x * blockDim.x + threadIdx.x;
-  //   if (used_index >= n_used)
-  //     return;
-  //   int cell_index = dmc.used_cell_index[used_index];
-
-  //   IndexType x = dmc.gX(cell_index);
-  //   IndexType y = dmc.gY(cell_index);
-  //   IndexType z = dmc.gZ(cell_index);
-
-  //   dmc.used_to_first_mc_vert[used_index] = 0;
-  //   if (x >= dmc.dims[0] - 1 || y >= dmc.dims[1] - 1 || z >= dmc.dims[2] - 1)
-  //     return;
-
-  //   Scalar d0 = data[cell_index];
-  //   Scalar dx = data[dmc.gA(x + 1, y, z)];
-  //   Scalar dy = data[dmc.gA(x, y + 1, z)];
-  //   Scalar dz = data[dmc.gA(x, y, z + 1)];
-
-  //   uint8_t cubeCode = getGoodCellCode(dmc, data, x, y, z, iso);
-  //   dmc.used_cell_code[used_index] = cubeCode;
-
-  //   int num_patches = mcFirstPatchIndex[static_cast<int>(cubeCode) + 1] -
-  //                     mcFirstPatchIndex[cubeCode];
-  //   dmc.used_to_first_mc_patch[used_index] = num_patches;
-
-  //   int num_verts = 0;
-  //   if ((d0 <= iso && dx >= iso) || (dx <= iso && d0 >= iso))
-  //     num_verts++;
-  //   if ((d0 <= iso && dy >= iso) || (dy <= iso && d0 >= iso))
-  //     num_verts++;
-  //   if ((d0 <= iso && dz >= iso) || (dz <= iso && d0 >= iso))
-  //     num_verts++;
-  //   dmc.used_to_first_mc_vert[used_index] = num_verts;
-  // }
-
   template <typename Scalar, typename IndexType>
   __global__ void create_dmc_verts_kernel(CUDualMC<Scalar, IndexType> dmc,
                                           Scalar const *__restrict__ data, Scalar iso)
@@ -940,11 +889,6 @@ namespace cudualmc
         int ez = mcEdgeLocations[eid][2];
         int en = mcEdgeLocations[eid][3];
 
-        // TODO: potential speedup
-        // int vid = dmc.used_cell_mc_vert[3 * dmc.first_cell_used[dmc.gA(x + ex, y + ey, z + ez)] +
-        // en]; p += dmc.mc_verts[vid];
-
-        // NOTE: comptue mc verts on the fly
         p += computeMcVert(dmc, data, x + ex, y + ey, z + ez, en, iso);
         num += Scalar(1);
       }
@@ -993,36 +937,36 @@ namespace cudualmc
     dmc.quads[quad_index] = q;
   }
 
-
   template <typename Scalar>
-  __device__ Scalar scalar_triple_product(const Vertex<Scalar>& v1,
-                                          const Vertex<Scalar>& v2,
-                                          const Vertex<Scalar>& v3,
-                                          const Vertex<Scalar>& ref)
+  __device__ Scalar scalar_triple_product(const Vertex<Scalar> &v1,
+                                          const Vertex<Scalar> &v2,
+                                          const Vertex<Scalar> &v3,
+                                          const Vertex<Scalar> &ref)
   {
-      Vertex<Scalar> cross_product = (v2 - ref).cross(v3 - ref);
-      return (v1 - ref).dot(cross_product);
+    Vertex<Scalar> cross_product = (v2 - ref).cross(v3 - ref);
+    return (v1 - ref).dot(cross_product);
   }
-  
+
   template <typename Scalar>
   __device__ float compute_minimum_angle(Vertex<Scalar> v1, Vertex<Scalar> v2, Vertex<Scalar> v3)
   {
-      auto cos_angle = [](Vertex<Scalar> a, Vertex<Scalar> b) -> float {
-          Scalar dot_product = a.x * b.x + a.y * b.y + a.z * b.z;
-          Scalar mag_a = sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
-          Scalar mag_b = sqrt(b.x * b.x + b.y * b.y + b.z * b.z);
-          return dot_product / (mag_a * mag_b);
-      };
+    auto cos_angle = [](Vertex<Scalar> a, Vertex<Scalar> b) -> float
+    {
+      Scalar dot_product = a.x * b.x + a.y * b.y + a.z * b.z;
+      Scalar mag_a = sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+      Scalar mag_b = sqrt(b.x * b.x + b.y * b.y + b.z * b.z);
+      return dot_product / (mag_a * mag_b);
+    };
 
-      Vertex<Scalar> v12 = {v2.x - v1.x, v2.y - v1.y, v2.z - v1.z};
-      Vertex<Scalar> v13 = {v3.x - v1.x, v3.y - v1.y, v3.z - v1.z};
-      Vertex<Scalar> v23 = {v3.x - v2.x, v3.y - v2.y, v3.z - v2.z};
+    Vertex<Scalar> v12 = {v2.x - v1.x, v2.y - v1.y, v2.z - v1.z};
+    Vertex<Scalar> v13 = {v3.x - v1.x, v3.y - v1.y, v3.z - v1.z};
+    Vertex<Scalar> v23 = {v3.x - v2.x, v3.y - v2.y, v3.z - v2.z};
 
-      float angle1 = acosf(cos_angle(v12, v13));
-      float angle2 = acosf(cos_angle(v12, v23));
-      float angle3 = acosf(cos_angle(v13, v23));
+    float angle1 = acosf(cos_angle(v12, v13));
+    float angle2 = acosf(cos_angle(v12, v23));
+    float angle3 = acosf(cos_angle(v13, v23));
 
-      return fminf(angle1, fminf(angle2, angle3));
+    return fminf(angle1, fminf(angle2, angle3));
   }
 
   template <typename Scalar, typename IndexType>
@@ -1033,7 +977,7 @@ namespace cudualmc
       return;
 
     Quad<IndexType> q = dmc.quads[quad_index];
-    
+
     IndexType i = q.i;
     IndexType j = q.j;
     IndexType k = q.k;
@@ -1048,7 +992,7 @@ namespace cudualmc
     Edge<Vertex<Scalar>> e = dmc.mc_vert_to_edge[quad_index];
     v_p = e.i;
     v_n = e.j;
-    
+
     // Concave test
     bool is_c1_concave = scalar_triple_product(v_i, v_l, v_j, v_p) < 0.0f ||
                          scalar_triple_product(v_i, v_l, v_j, v_n) > 0.0f;
@@ -1060,7 +1004,7 @@ namespace cudualmc
                          scalar_triple_product(v_l, v_k, v_i, v_n) > 0.0f;
 
     // Case
-    if((is_c1_concave || is_c3_concave) && (is_c2_concave ||is_c4_concave))
+    if ((is_c1_concave || is_c3_concave) && (is_c2_concave || is_c4_concave))
     {
       // 4 tris
       dmc.first_tris_create[quad_index] = 4;
@@ -1073,19 +1017,19 @@ namespace cudualmc
       dmc.first_verts_create[quad_index] = 0;
     }
   }
-  
+
   template <typename Scalar, typename IndexType>
   __global__ void divide_quads_kernel(CUDualMC<Scalar, IndexType> dmc, Scalar const *__restrict__ data, Scalar iso)
   {
     int quad_index = blockIdx.x * blockDim.x + threadIdx.x;
     if (quad_index >= dmc.n_quads)
       return;
-    
+
     IndexType used_index = dmc.mc_vert_to_cell[quad_index];
     IndexType cell_index = dmc.used_cell_index[used_index];
 
     Quad<IndexType> q = dmc.quads[quad_index];
-    
+
     IndexType i = q.i;
     IndexType j = q.j;
     IndexType k = q.k;
@@ -1100,14 +1044,6 @@ namespace cudualmc
     Edge<Vertex<Scalar>> e = dmc.mc_vert_to_edge[quad_index];
     v_p = e.i;
     v_n = e.j;
-    //if(quad_index==31){
-      // printf("quad %d vi : %f %f %f\n", quad_index, v_i.x, v_i.y, v_i.z);
-      // printf("quad %d vj : %f %f %f\n", quad_index, v_j.x, v_j.y, v_j.z);
-      // printf("quad %d vk : %f %f %f\n", quad_index, v_k.x, v_k.y, v_k.z);
-      // printf("quad %d vl : %f %f %f\n", quad_index, v_l.x, v_l.y, v_l.z);
-      // printf("quad %d vp : %f %f %f\n", quad_index, v_p.x, v_p.y, v_p.z);
-      // printf("quad %d vn : %f %f %f\n", quad_index, v_n.x, v_n.y, v_n.z);
-    //}
 
     // Concave test
     bool is_c1_concave = scalar_triple_product(v_i, v_l, v_j, v_p) < 0.0f ||
@@ -1121,12 +1057,10 @@ namespace cudualmc
 
     IndexType tris_idx = dmc.first_tris_create[quad_index];
     // Case
-    if((is_c1_concave || is_c3_concave) && (is_c2_concave ||is_c4_concave))
+    if ((is_c1_concave || is_c3_concave) && (is_c2_concave || is_c4_concave))
     {
       // 4 tris
-      //printf("Case 1\n");
       IndexType vert_idx = dmc.first_verts_create[quad_index] + dmc.n_verts;
-      //Vertex<Scalar> v_m = (v_p + v_n) / 2.0f;
       Scalar d0, d1;
       d0 = data[dmc.gA(v_p.x, v_p.y, v_p.z)];
       d1 = data[dmc.gA(v_n.x, v_n.y, v_n.z)];
@@ -1134,7 +1068,6 @@ namespace cudualmc
       t = sigmoidAdjust(t);
       Vertex<Scalar> v_e = v_p + (v_n - v_p) * t;
 
-      //dmc.verts[vert_idx] = v_m;
       dmc.verts[vert_idx] = v_e;
       dmc.tris[tris_idx] = {q.i, q.j, vert_idx};
       dmc.tris[tris_idx + 1] = {q.j, q.k, vert_idx};
@@ -1143,13 +1076,11 @@ namespace cudualmc
     }
     else if (is_c2_concave || is_c4_concave)
     {
-      //printf("Case 2\n");
       dmc.tris[tris_idx] = {q.i, q.j, q.l};
       dmc.tris[tris_idx + 1] = {q.j, q.k, q.l};
     }
     else if (is_c1_concave || is_c3_concave)
     {
-      //printf("Case 3\n");
       dmc.tris[tris_idx] = {q.i, q.j, q.k};
       dmc.tris[tris_idx + 1] = {q.i, q.k, q.l};
     }
@@ -1164,13 +1095,13 @@ namespace cudualmc
           compute_minimum_angle(v_i, v_k, v_l));
       if (min_angle1 > min_angle2)
       {
-          dmc.tris[tris_idx] = {q.i, q.j, q.l};
-          dmc.tris[tris_idx + 1] = {q.j, q.k, q.l};
+        dmc.tris[tris_idx] = {q.i, q.j, q.l};
+        dmc.tris[tris_idx + 1] = {q.j, q.k, q.l};
       }
       else
       {
-          dmc.tris[tris_idx] = {q.i, q.j, q.k};
-          dmc.tris[tris_idx + 1] = {q.i, q.k, q.l};
+        dmc.tris[tris_idx] = {q.i, q.j, q.k};
+        dmc.tris[tris_idx + 1] = {q.i, q.k, q.l};
       }
     }
   }
@@ -1180,7 +1111,7 @@ namespace cudualmc
                                             IndexType dimZ, Scalar iso, int device)
   {
     cudaSetDevice(device);
-    
+
     resize(dimX, dimY, dimZ);
 
     size_t temp_storage_bytes = 0;
@@ -1200,7 +1131,6 @@ namespace cudualmc
 
     CHECK_CUDA(cudaMemcpy(&n_used_cells, first_cell_used + n_cells, sizeof(IndexType),
                           cudaMemcpyDeviceToHost));
-    // fprintf(stderr, "used cells %d\n", n_used_cells);
 
     ensure_used_cell_storage_size(n_used_cells);
 
@@ -1219,7 +1149,6 @@ namespace cudualmc
                                   used_to_first_mc_vert, n_used_cells + 1);
     CHECK_CUDA(cudaMemcpy(&n_quads, used_to_first_mc_vert + n_used_cells, sizeof(IndexType),
                           cudaMemcpyDeviceToHost));
-    // fprintf(stderr, "mc vert (dmc quad) count: %d\n", n_quads);
 
     ensure_quad_storage_size(n_quads);
     // index mc vertices (dmc quads)
@@ -1246,7 +1175,7 @@ namespace cudualmc
     create_quads_kernel<<<(n_quads + BLOCK_SIZE - 1) / BLOCK_SIZE, BLOCK_SIZE>>>(*this);
 
     count_div_quads_kernel<<<(n_quads + BLOCK_SIZE - 1) / BLOCK_SIZE, BLOCK_SIZE>>>(*this);
-    
+
     CHECK_CUDA(cudaMemset(first_tris_create + n_quads, 0, sizeof(IndexType)));
     cub::DeviceScan::ExclusiveSum(nullptr, temp_storage_bytes, first_tris_create, first_tris_create,
                                   n_quads + 1);
@@ -1254,7 +1183,7 @@ namespace cudualmc
     cub::DeviceScan::ExclusiveSum(temp_storage, allocated_temp_storage_size, first_tris_create, first_tris_create,
                                   n_quads + 1);
 
-    CHECK_CUDA(cudaMemcpy(&n_tris, first_tris_create + n_quads, sizeof(IndexType), cudaMemcpyDeviceToHost));                                  
+    CHECK_CUDA(cudaMemcpy(&n_tris, first_tris_create + n_quads, sizeof(IndexType), cudaMemcpyDeviceToHost));
     ensure_tris_storage_size(n_tris);
 
     CHECK_CUDA(cudaMemset(first_verts_create + n_quads, 0, sizeof(IndexType)));
