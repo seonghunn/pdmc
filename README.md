@@ -7,13 +7,13 @@ pip install pdmc
 ```
 
 # Quick Start
-You can effortlessly try the following command, which converts a sphere SDF into triangle mesh using different algorithms. The generated results are saved in `out/`.
+You can effortlessly try the following command. The generated results are saved in `out/`.
 ```
 python test/example.py
 ```
 
 # Usage
-All the functions share the same interfaces. Firstly you should build an iso-surface extractor as follows:
+Firstly you should build an iso-surface extractor as follows:
 ```
 from pdmc import DMC
 dmc = DMC(dtype=torch.float32).cuda() # or dtype=torch.float64

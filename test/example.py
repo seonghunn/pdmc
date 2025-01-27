@@ -54,8 +54,8 @@ os.makedirs("out", exist_ok=True)
 
 dmc = DMC(dtype=torch.float32).to(device)
 
-verts, tris = dmc(sdf, isovalue=0.0, return_quads=False, normalize=True)
-mesh = trimesh.Trimesh(vertices=verts.detach().cpu().numpy(), faces=tris.cpu().numpy(), process=False)
+verts, faces = dmc(sdf, isovalue=0.0, return_quads=False, normalize=True)
+mesh = trimesh.Trimesh(vertices=verts.detach().cpu().numpy(), faces=faces.cpu().numpy(), process=False)
 mesh.export("out/sphere.obj")
 
-print("forward results saved to out/")
+print("results saved to out/")
