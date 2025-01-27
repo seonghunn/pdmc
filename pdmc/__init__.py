@@ -35,5 +35,7 @@ class DMC(nn.Module):
             verts = verts / (
                 torch.tensor([dimX, dimY, dimZ], dtype=verts.dtype, device=verts.device) - 1
             )
-            
-        return verts, quads.long(), tris.long()
+        if return_quads:
+            return verts, quads.long()
+        else:
+            return verts, tris.long()
