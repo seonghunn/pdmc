@@ -1,5 +1,7 @@
 # Parallel Dual Marching Cube for Intersection-free Mesh
 
+parallel, Intersection-free iso-surface extraction module used in [PaMO](https://github.com/SarahWeiii/pamo)
+
 # Installation
 Requirements: torch (must be compatible with CUDA version), trimesh
 ```
@@ -24,7 +26,7 @@ verts, faces = dmc(sdf, isovalue=0.0, return_quads=False, normalize=True)
 ```
 
 Input
-* `sdf`: queries SDF values on the grid vertices (see the `test/example.py` for how to create the grid). The gradient will be back-propagated to the source that generates the SDF values. (**[N, N, N, 3]**)
+* `sdf`: queries SDF values on the grid vertices (see the `test/example.py` for how to create the grid), (**[N, N, N, 3]**)
 * `normalize`: whether to normalize the output vertices, default=True. If set to **True**, the vertices are normalized to [0, 1]. When **False**, the vertices remain unnormalized as [0, dim-1], 
 * `return_quads`: whether return quad meshes; If set to **True**, the function returns quad meshes (**[F, 4]**).
 
@@ -36,3 +38,15 @@ Output
 
 # Reference
 [Differentiable Iso-Surface Extraction Package (DISO)](https://github.com/SarahWeiii/diso)
+# Cite
+If you use pdmc or PaMO in your research, please cite:
+```
+@inproceedings{oh2025pamo,
+  title={PaMO: Parallel Mesh Optimization for Intersection-Free Low-Poly Modeling on the GPU},
+  author={Oh, Seonghun and Yuan, Xiaodi and Wei, Xinyue and Shi, Ruoxi and Xiang, Fanbo and Liu, Minghua and Su, Hao},
+  booktitle={Computer Graphics Forum},
+  pages={e70267},
+  year={2025},
+  organization={Wiley Online Library}
+}
+```
